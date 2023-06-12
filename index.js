@@ -25,7 +25,20 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
+    const usersCollection = client.db("summerDb").collection("users");
     const campCollection = client.db("summerDb").collection("classes");
+
+    //?users related apis
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const query = {email: user.email};
+      const existingUser = await usersCollection.findOne(query);
+      if (existingUser) {
+        return res.send({message: "user already exists"});
+      }
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
 
     //app.get("/classes", async (req, res) => {
     //  const result = await campCollection.find().toArray();
@@ -36,6 +49,14 @@ async function run() {
         .find({})
         .sort({enrolled: -1})
         .toArray();
+      res.send(result);
+    });
+
+    //?delete function
+    app.delete("/classes/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const result = await campCollection.deleteOne(query);
       res.send(result);
     });
 
