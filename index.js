@@ -7,7 +7,13 @@ const {MongoClient, ServerApiVersion, ObjectId} = require("mongodb");
 const port = process.env.PORT || 5003;
 
 //? middleware
-app.use(cors());
+const corsConfig = {
+  origin: "",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+};
+app.use(cors(corsConfig));
+app.options("", cors(corsConfig));
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.xol1uc7.mongodb.net/?retryWrites=true&w=majority`;
@@ -24,7 +30,6 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    //await client.connect();
 
     const usersCollection = client.db("summerDb").collection("users");
     const instructorsCollection = client
@@ -41,6 +46,7 @@ async function run() {
       });
       res.send({token});
     });
+
     //?users related apis
 
     app.get("/users", async (req, res) => {
