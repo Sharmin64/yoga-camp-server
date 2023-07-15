@@ -35,31 +35,39 @@ async function run() {
     const enrolledCollection = client.db("summerDb").collection("purchased");
 
     //?test
-    //app.post("/postEnrolled", async (req, res) => {
-    //      const body = req.body;
-    //      // // console.log('selected body:',body);
-    //      const removeOrder = await selectedCollection.deleteOne({
-    //        _id: new ObjectId(body.enrolledId),
-    //      });
-    //      const result = await enrolledCollection.insertOne(body);
-    //      // console.log("req", req);
-    //      const updateClass = await classCollection.updateOne(
-    //        {
-    //          _id: new ObjectId(body.classId),
-    //        },
-    //        {
-    //          $inc: {seats: -1, enrolled: 1},
-    //        }
-    //      );
-    //      res.send({result, removeOrder, updateClass});
-    //    });
+    app.post("/postEnrolled", async (req, res) => {
+      const body = req.body;
+      // // console.log('selected body:',body);
+      const removeOrder = await selectedCollection.deleteOne({
+        _id: new ObjectId(body.enrolledId),
+      });
+      const result = await enrolledCollection.insertOne(body);
+      // console.log("req", req);
+      const updateClass = await campCollection.updateOne(
+        {
+          _id: new ObjectId(body.classId),
+        },
+        {
+          $inc: {seats: -1, enrolled: 1},
+        }
+      );
+      res.send({result, removeOrder, updateClass});
+    });
     //?selected
-    app.get("/selected/:email", async (req, res) => {
+    app.get("/addedClasses/:email", async (req, res) => {
       const email = req.params.email;
-      const result = await selectedCollection
-        .find({studentEmail: email})
-        .sort({date: -1})
-        .toArray();
+      console.log("email", email);
+      const result = await instructorsCollection.find({email: email}).toArray();
+      //.sort({date: -1})
+
+      res.send(result);
+    });
+    //?enrolled
+    app.get("/enrolledClasses/:email", async (req, res) => {
+      const email = req.params.email;
+      console.log("email", email);
+      const result = await enrolledCollection.find({email: email}).toArray();
+      //.sort({date: -1})
 
       res.send(result);
     });
@@ -385,16 +393,7 @@ app.listen(port, () => {
 //      res.send(result);
 //    });
 
-//    app.get("/enrolled/:email", async (req, res) => {
-//      // console.log(req.params.email);
-//      const email = req.params.email;
-//      const result = await enrolledCollection
-//        .find({email: email})
-//        .sort({date: -1})
-//        .toArray();
-//      // console.log(result);
-//      res.send(result);
-//    });
+//
 
 //    app.get("/classes/:id", async (req, res) => {
 //      const id = req.params.id;
