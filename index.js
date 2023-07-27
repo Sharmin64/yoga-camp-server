@@ -10,7 +10,9 @@ const port = process.env.PORT || 5003;
 app.use(cors());
 app.use(express.json());
 
-const uri = `mongodb://${process.env.DB_USER}:${process.env.DB_PASS}@ac-rwfxpuo-shard-00-00.xol1uc7.mongodb.net:27017,ac-rwfxpuo-shard-00-01.xol1uc7.mongodb.net:27017,ac-rwfxpuo-shard-00-02.xol1uc7.mongodb.net:27017/?ssl=true&replicaSet=atlas-334gvx-shard-0&authSource=admin&retryWrites=true&w=majority`;
+//const uri = `mongodb://${ process.env.DB_USER }:${ process.env.DB_PASS }@ac-rwfxpuo-shard-00-00.xol1uc7.mongodb.net:27017,ac-rwfxpuo-shard-00-01.xol1uc7.mongodb.net:27017,ac-rwfxpuo-shard-00-02.xol1uc7.mongodb.net:27017/?ssl=true&replicaSet=atlas-334gvx-shard-0&authSource=admin&retryWrites=true&w=majority`;
+
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.xol1uc7.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -24,7 +26,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect(); //?vercel deploy korer somoy ey line comment kore rekhe terpor deploy  korte hobe
+    //await client.connect();
     const rolesCollection = client.db("summerDb").collection("users");
     const instructorsCollection = client
       .db("summerDb")
@@ -37,7 +39,7 @@ async function run() {
     //?test
     app.post("/postEnrolled", async (req, res) => {
       const body = req.body;
-      // // console.log('selected body:',body);
+      console.log("selected body:", body);
       const removeOrder = await selectedCollection.deleteOne({
         _id: new ObjectId(body.enrolledId),
       });
@@ -57,16 +59,46 @@ async function run() {
     app.get("/addedClasses/:email", async (req, res) => {
       const email = req.params.email;
       console.log("email", email);
-      const result = await instructorsCollection.find({email: email}).toArray();
+      const result = await campCollection.find({email: email}).toArray();
       //.sort({date: -1})
 
       res.send(result);
+    });
+
+    app.get("/selectedClass/:id", async (req, res) => {
+      const selectedId = req.params.id;
+      console.log("selectedId", selectedId);
+      try {
+        const result = await selectedCollection.findOne({classId: selectedId});
+        res.send(result);
+      } catch (error) {
+        // console.error("Error fetching data:", error);
+        res.status(500).send("Error fetching data");
+      }
     });
     //?enrolled
     app.get("/enrolledClasses/:email", async (req, res) => {
       const email = req.params.email;
       console.log("email", email);
       const result = await enrolledCollection.find({email: email}).toArray();
+      //.sort({date: -1})
+
+      res.send(result);
+    });
+
+    app.get("/enrolledClass", async (req, res) => {
+      //const email = req.params.email;
+      //console.log("email", email);
+      const result = await enrolledCollection.find().toArray();
+      //.sort({date: -1})
+
+      res.send(result);
+    });
+    //?selected
+    app.get("/selectedClass", async (req, res) => {
+      //const email = req.params.email;
+      //console.log("email", email);
+      const result = await selectedCollection.find().toArray();
       //.sort({date: -1})
 
       res.send(result);
@@ -79,20 +111,62 @@ async function run() {
 
       res.send(result);
     });
-
+    //?classes
     app.post("/postClasses", async (req, res) => {
       const body = req.body;
 
       const result = await campCollection.insertOne(body);
       res.send(result);
     });
+    //?admin role
+    //app.patch("/admin/roles/:email", async (req, res) => {
+    //  const email = req.params.email;
+    //  const filter = {email: email};
+    //  const updateDoc = {
+    //    $set: {
+    //      role: "Admin",
+    //    },
+    //  };
 
-    app.patch("/admin/roles/:email", async (req, res) => {
+    //  const result = await rolesCollection.updateOne(filter, updateDoc);
+
+    //  res.send(result);
+    //});
+
+    //?admin get
+    app.get("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
-      const filter = {email: email};
+      const isAdmin = await rolesCollection.findOne({email, role: "admin"});
+      if (isAdmin) {
+        res.send({admin: true});
+      } else {
+        res.send({admin: false});
+      }
+    });
+
+    //?update admin data
+    app.patch("/users/admin/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)};
       const updateDoc = {
         $set: {
-          role: "Admin",
+          role: `admin`,
+        },
+      };
+
+      const result = await rolesCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.patch("/users/instructor/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const filter = {_id: new ObjectId(id)};
+      //const email = req.params.email;
+      //const filter = {email: email};
+      const updateDoc = {
+        $set: {
+          role: `Instructor`,
         },
       };
 
@@ -100,20 +174,19 @@ async function run() {
 
       res.send(result);
     });
+    //? update instructor data
+    // app.patch("/users/instructor/:id", async (req, res) => {
+    //  const id = req.params.id;
+    //  const filter = {_id: new ObjectId(id)};
+    //  const updateDoc = {
+    //    $set: {
+    //      role: `instructor`,
+    //    },
+    //  };
 
-    app.patch("/instructor/roles/:email", async (req, res) => {
-      const email = req.params.email;
-      const filter = {email: email};
-      const updateDoc = {
-        $set: {
-          role: "Instructor",
-        },
-      };
-
-      const result = await rolesCollection.updateOne(filter, updateDoc);
-
-      res.send(result);
-    });
+    //  const result = await rolesCollection.updateOne(filter, updateDoc);
+    //  res.send(result);
+    //});
 
     app.get("/role/email/:email", async (req, res) => {
       const email = req.params.email;
@@ -125,7 +198,38 @@ async function run() {
         res.status(500).send("Error fetching data");
       }
     });
+    //?feedback get
 
+    app.get("/feedback/:id", async (req, res) => {
+      const feedbackId = req.params.id;
+      console.log("feedbackId", feedbackId);
+      try {
+        const result = await campCollection.findOne({classId: feedbackId});
+        res.send(result);
+      } catch (error) {
+        // console.error("Error fetching data:", error);
+        res.status(500).send("Error fetching data");
+      }
+    });
+    //?feedback update
+    app.patch("/feedback/:id", async (req, res) => {
+      const body = req.body;
+      //console.log("clicked", body);
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)};
+      const options = {upsert: true};
+      const updatedStatus = {
+        $set: {
+          feedback: body.feedback,
+        },
+      };
+      const result = await campCollection.updateOne(
+        filter,
+        updatedStatus,
+        options
+      );
+      res.send(result);
+    });
     //?users related apis
 
     app.get("/users", async (req, res) => {
@@ -175,33 +279,6 @@ async function run() {
       res.send(result);
     });
 
-    //?update admin data
-    app.patch("/users/admin/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = {_id: new ObjectId(id)};
-      const updateDoc = {
-        $set: {
-          role: `admin`,
-        },
-      };
-
-      const result = await rolesCollection.updateOne(filter, updateDoc);
-      res.send(result);
-    });
-    ////? update instructor data
-    app.patch("/users/instructor/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = {_id: new ObjectId(id)};
-      const updateDoc = {
-        $set: {
-          role: `instructor`,
-        },
-      };
-
-      const result = await rolesCollection.updateOne(filter, updateDoc);
-      res.send(result);
-    });
-
     app.get("/classes", async (req, res) => {
       const email = req.query.email;
       const query = {email: email};
@@ -236,267 +313,3 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log(`Yoga Camp is running this whole month on ${port}`);
 });
-
-//?klakk
-
-//    const classCollection = client.db("corePowerDb").collection("classes");
-//    const rolesCollection = client.db("corePowerDb").collection("roles");
-//    const selectedCollection = client.db("corePowerDb").collection("selected");
-//    const enrolledCollection = client.db("corePowerDb").collection("purchased");
-
-//    app.post("/postClasses", async (req, res) => {
-//      const body = req.body;
-//      // console.log("body:", body);
-//      const result = await classCollection.insertOne(body);
-//      // console.log("req", req);
-//      res.send(result);
-//    });
-
-//
-
-//
-
-//    app.post("/postRoles/:email", async (req, res) => {
-//      const body = req.body;
-//      const email = req.params.email;
-
-//      const existingEmail = await rolesCollection.findOne({email: email});
-//      if (existingEmail) {
-//        return res.status(400).send("Email already exists");
-//      }
-
-//      const result = await rolesCollection.insertOne(body);
-//      // console.log("req", req);
-//      res.send(result);
-//    });
-
-//    app.patch("/updateClass/:id", async (req, res) => {
-//      const body = req.body;
-//      // console.log(req.params.id);
-//      // console.log("clicked", body);
-//      const id = req.params.id;
-//      const filter = {_id: new ObjectId(id)};
-//      // const options = { upsert: true };
-//      const updatedStatus = {
-//        $set: {
-//          ...body,
-//        },
-//      };
-//      const result = await classCollection.updateOne(filter, updatedStatus);
-//      res.send(result);
-//    });
-
-//    app.patch("/status/:id", async (req, res) => {
-//      const body = req.body;
-//      // console.log(req.params.id);
-//      // console.log("clicked", body);
-//      const id = req.params.id;
-//      const filter = {_id: new ObjectId(id)};
-//      const options = {upsert: true};
-//      const updatedStatus = {
-//        $set: {
-//          status: body.status,
-//        },
-//      };
-//      const result = await classCollection.updateOne(
-//        filter,
-//        updatedStatus,
-//        options
-//      );
-//      res.send(result);
-//    });
-
-//    app.patch("/feedback/:id", async (req, res) => {
-//      const body = req.body;
-//      // console.log("clicked", body);
-//      const id = req.params.id;
-//      const filter = {_id: new ObjectId(id)};
-//      const options = {upsert: true};
-//      const updatedStatus = {
-//        $set: {
-//          feedback: body.feedback,
-//        },
-//      };
-//      const result = await classCollection.updateOne(
-//        filter,
-//        updatedStatus,
-//        options
-//      );
-//      res.send(result);
-//    });
-
-//    app.patch("/admin/roles/:email", async (req, res) => {
-//      const email = req.params.email;
-//      const filter = {email: email};
-//      const updateDoc = {
-//        $set: {
-//          role: "Admin",
-//        },
-//      };
-
-//      const result = await rolesCollection.updateOne(filter, updateDoc);
-//      // console.log(result, email);
-//      res.send(result);
-//    });
-
-//    app.patch("/instructor/roles/:email", async (req, res) => {
-//      const email = req.params.email;
-//      const filter = {email: email};
-//      const updateDoc = {
-//        $set: {
-//          role: "Instructor",
-//        },
-//      };
-
-//      const result = await rolesCollection.updateOne(filter, updateDoc);
-//      // console.log(result, email);
-//      res.send(result);
-//    });
-
-//    app.get("/classes", async (req, res) => {
-//      // console.log(req.params.type);
-
-//      const result = await classCollection
-//        .find({})
-//        .sort({enrolled: 1})
-//        .toArray();
-//      res.send(result);
-//    });
-
-//    app.get("/roles", async (req, res) => {
-//      // console.log(req.params.type);
-
-//      const result = await rolesCollection.find({}).sort({date: -1}).toArray();
-//      // console.log(result);
-//      res.send(result);
-//    });
-//    app.get("/selected", async (req, res) => {
-//      // console.log(req.params.type);
-
-//      const result = await selectedCollection
-//        .find({})
-//        .sort({date: -1})
-//        .toArray();
-//      // console.log(result);
-//      res.send(result);
-//    });
-//
-
-//    app.get("/enrolled", async (req, res) => {
-//      // console.log(req.params.type);
-
-//      const result = await enrolledCollection
-//        .find({})
-//        .sort({date: -1})
-//        .toArray();
-//      // console.log(result);
-//      res.send(result);
-//    });
-
-//
-
-//    app.get("/classes/:id", async (req, res) => {
-//      const id = req.params.id;
-
-//      try {
-//        const result = await classCollection.findOne({_id: new ObjectId(id)});
-//        res.send(result);
-//      } catch (error) {
-//        // console.error("Error fetching data:", error);
-//        res.status(500).send("Error fetching data");
-//      }
-//    });
-
-//    app.get("/role/:id", async (req, res) => {
-//      const id = req.params.id;
-
-//      try {
-//        const result = await rolesCollection.findOne({_id: new ObjectId(id)});
-//        res.send(result);
-//      } catch (error) {
-//        // console.error("Error fetching data:", error);
-//        res.status(500).send("Error fetching data");
-//      }
-//    });
-
-//    app.get("/role/email/:email", async (req, res) => {
-//      const email = req.params.email;
-
-//      try {
-//        const result = await rolesCollection.findOne({email});
-//        res.send(result);
-//      } catch (error) {
-//        // console.error("Error fetching data:", error);
-//        res.status(500).send("Error fetching data");
-//      }
-//    });
-
-//    app.get("/selected/id/:id", async (req, res) => {
-//      const id = req.params.id;
-//      // console.log(id);
-//      try {
-//        const result = await selectedCollection.findOne({
-//          _id: new ObjectId(id),
-//        });
-//        res.send(result);
-//      } catch (error) {
-//        // console.error("Error fetching data:", error);
-//        res.status(500).send("Error fetching data");
-//      }
-//    });
-
-//    app.get("/selectedId/:id", async (req, res) => {
-//      const selectedId = req.params.id;
-//      // console.log("selectedId", selectedId);
-//      try {
-//        const result = await selectedCollection.findOne({selectedId});
-//        res.send(result);
-//      } catch (error) {
-//        // console.error("Error fetching data:", error);
-//        res.status(500).send("Error fetching data");
-//      }
-//    });
-
-//    app.get("/myClasses/:email", async (req, res) => {
-//      if (req.query.sort == "asc") {
-//        const result = await classCollection
-//          .find({email: req.params.email})
-//          .sort({price: 1})
-//          .toArray();
-//        res.send(result);
-//      } else {
-//        const result = await classCollection
-//          .find({email: req.params.email})
-//          .sort({price: -1})
-//          .toArray();
-//        res.send(result);
-//      }
-//    });
-
-//    app.delete("/selected/:id", async (req, res) => {
-//      const id = req.params.id;
-//      // // console.log(id);
-//      const query = {_id: new ObjectId(id)};
-//      const result = await selectedCollection.deleteOne(query);
-//      res.send(result);
-//    });
-
-//    // Send a ping to confirm a successful connection
-//    // await client.db("admin").command({ ping: 1 });
-//    // console.log(
-//      "Pinged your deployment. You successfully connected to MongoDB!"
-//    );
-//  } finally {
-//    // Ensures that the client will close when you finish/error
-//    // await client.close();
-//  }
-//}
-//run().catch(// console.dir);
-
-//app.get("/", (req, res) => {
-//  res.send("Yoga camp  running");
-//});
-
-//app.listen(port, () => {
-//  // console.log(`Yoga camp running on port ${port}`);
-//});
