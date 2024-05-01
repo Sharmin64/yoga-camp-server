@@ -213,7 +213,7 @@ async function run() {
     });
 
     app.put("/popular-classes/:id", async (req, res) => {
-      const id = req.params.id;
+      const id = parseInt(req.params._id);
       const filter = {_id: new ObjectId(id)};
       const options = {upsert: true};
       const newData = req.body;
